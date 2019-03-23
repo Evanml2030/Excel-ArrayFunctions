@@ -2,12 +2,15 @@ Option Explicit
 
 Private Declare PtrSafe Function VarPtrArray Lib "VBE7" Alias "VarPtr" _
         (ByRef Var() As Any) As LongPtr
-    
+
 Private Declare PtrSafe Sub CopyMemoryI Lib "kernel32.dll" Alias "RtlMoveMemory" _
         (ByVal dst As LongPtr, ByVal src As LongPtr, ByVal Length As Long)
 
 Private Declare PtrSafe Sub CopyMemoryII Lib "kernel32.dll" Alias "RtlMoveMemory" _
         (ByRef dst As SAFEARRAY, ByVal src As LongPtr, ByVal Length As Long)
+
+Private Declare PtrSafe Function GetAsyncKeyState Lib "user32" _
+        (ByVal vKey As Long) As Boolean
 
 Private Type SAFEARRAY_BOUND
     cElements    As Long
@@ -28,60 +31,6 @@ Private Type SnakePart
     Row          As Long
 End Type
 
-Private Const SNAKEPART_BYTELENGTH = 8
-Private SnakeParts() As SnakePart
-
-Sub TestFunctions()
-
-    Dim Arr(10) As SnakePart
-    Dim SP As SnakePart
-    SP.Column = 4
-    SP.Row = 4
-    Arr(0) = SP
-    Debug.Print "Expect 4 x2"
-    Debug.Print Arr(0).Column
-    Debug.Print Arr(0).Row
-    
-    Dim ArrTwo() As SnakePart
-    
-    SP.Column = 8
-    SP.Row = 8
-    ArrTwo = ArrayPush(Arr, SP)
-    
-    Debug.Print "Expect 4 x2 Followed by 8 x2"
-    Debug.Print ArrTwo(0).Column
-    Debug.Print ArrTwo(0).Row
-    Debug.Print ArrTwo(10).Column
-    Debug.Print ArrTwo(10).Row
-    
-    ArrTwo = ArrayPop(Arr)
-    
-    Debug.Print "Expect 4 x2 Followed by 0 x2"
-    Debug.Print ArrTwo(0).Column
-    Debug.Print ArrTwo(0).Row
-    Debug.Print ArrTwo(9).Column
-    Debug.Print ArrTwo(9).Row
-    
-    SP.Column = 7
-    SP.Row = 7
-    ArrTwo = ArrayShift(ArrTwo, SP)
-    
-    Debug.Print "Expect 7 x2 Followed by 4 x2"
-    Debug.Print ArrTwo(0).Column
-    Debug.Print ArrTwo(0).Row
-    Debug.Print ArrTwo(1).Column
-    Debug.Print ArrTwo(1).Row
-    
-    ArrTwo = ArrayUnshift(ArrTwo)
-    
-    Debug.Print "Expect 4 x2 Followed by 0 x2"
-    Debug.Print ArrTwo(0).Column
-    Debug.Print ArrTwo(0).Row
-    Debug.Print ArrTwo(1).Column
-    Debug.Print ArrTwo(1).Row
-    
-End Sub
-
 Private Function ArrayPush(ByRef ArrayOriginal() As SnakePart, ByRef ElementToAdd As SnakePart) As SnakePart()
 Dim NewLength      As Long
 Dim CopiedBytes    As Long
@@ -89,12 +38,12 @@ Dim NewBytes       As Long
 
     NewLength = UBound(ArrayOriginal) + 1
     ReDim ArrayPush(NewLength)
-    
-    CopiedBytes = UBound(ArrayOriginal) * SNAKEPART_BYTELENGTH
+
+    CopiedBytes = NewLength * SNAKEPART_BYTELENGTH
     NewBytes = SNAKEPART_BYTELENGTH
 
     CopyMemoryI ArrayElementGetPointer(ArrayPush, 0, SNAKEPART_BYTELENGTH), ArrayElementGetPointer(ArrayOriginal, 0, SNAKEPART_BYTELENGTH), CopiedBytes
-    CopyMemoryI ArrayElementGetPointer(ArrayPush, UBound(ArrayPush) - 1, SNAKEPART_BYTELENGTH), VarPtr(ElementToAdd), NewBytes
+    CopyMemoryI ArrayElementGetPointer(ArrayPush, NewLength, SNAKEPART_BYTELENGTH), VarPtr(ElementToAdd), NewBytes
 End Function
 
 Private Function ArrayPop(ByRef ArrayOriginal() As SnakePart) As SnakePart()
@@ -103,9 +52,9 @@ Dim CopiedBytes    As Long
 
     NewLength = UBound(ArrayOriginal) - 1
     ReDim ArrayPop(NewLength)
-    
-    CopiedBytes = NewLength * SNAKEPART_BYTELENGTH
-    
+
+    CopiedBytes = UBound(ArrayOriginal) * SNAKEPART_BYTELENGTH
+
     CopyMemoryI ArrayElementGetPointer(ArrayPop, 0, SNAKEPART_BYTELENGTH), ArrayElementGetPointer(ArrayOriginal(), 0, SNAKEPART_BYTELENGTH), CopiedBytes
 End Function
 
@@ -116,10 +65,10 @@ Dim NewBytes       As Long
 
     NewLength = UBound(ArrayOriginal) + 1
     ReDim ArrayShift(NewLength)
-    
-    CopiedBytes = UBound(ArrayOriginal) * SNAKEPART_BYTELENGTH
+
+    CopiedBytes = NewLength * SNAKEPART_BYTELENGTH
     NewBytes = SNAKEPART_BYTELENGTH
-    
+
     CopyMemoryI ArrayElementGetPointer(ArrayShift, 1, SNAKEPART_BYTELENGTH), ArrayElementGetPointer(ArrayOriginal, 0, SNAKEPART_BYTELENGTH), CopiedBytes
     CopyMemoryI ArrayElementGetPointer(ArrayShift, 0, SNAKEPART_BYTELENGTH), VarPtr(ElementToAdd), NewBytes
 End Function
@@ -130,9 +79,9 @@ Dim CopiedBytes    As Long
 
     NewLength = UBound(ArrayOriginal) - 1
     ReDim ArrayUnshift(NewLength)
-    
-    CopiedBytes = NewLength * SNAKEPART_BYTELENGTH
-    
+
+    CopiedBytes = UBound(ArrayOriginal) * SNAKEPART_BYTELENGTH
+
     CopyMemoryI ArrayElementGetPointer(ArrayUnshift, 0, SNAKEPART_BYTELENGTH), ArrayElementGetPointer(ArrayOriginal, 1, SNAKEPART_BYTELENGTH), CopiedBytes
 End Function
 
